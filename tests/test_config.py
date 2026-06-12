@@ -83,6 +83,11 @@ class ConfigTest(unittest.TestCase):
 
         self.assertIn("消息配置必须是对象。", errors)
 
+    def test_validate_config_rejects_non_object_root_config(self):
+        errors = validate_config(None)
+
+        self.assertIn("配置必须是对象。", errors)
+
 
 if __name__ == "__main__":
     unittest.main()

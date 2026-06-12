@@ -62,6 +62,9 @@ def save_config(config: dict[str, Any], path: Path | None = None) -> None:
 
 
 def validate_config(config: dict[str, Any]) -> list[str]:
+    if not isinstance(config, dict):
+        return ["配置必须是对象。"]
+
     errors: list[str] = []
     bark = config.get("bark", {})
     message = config.get("message", {})
