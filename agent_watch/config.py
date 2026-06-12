@@ -66,6 +66,14 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     bark = config.get("bark", {})
     message = config.get("message", {})
 
+    if not isinstance(bark, dict):
+        errors.append("Bark 配置必须是对象。")
+        bark = copy.deepcopy(DEFAULT_CONFIG["bark"])
+
+    if not isinstance(message, dict):
+        errors.append("消息配置必须是对象。")
+        message = copy.deepcopy(DEFAULT_CONFIG["message"])
+
     server = str(bark.get("server", "")).strip()
     parsed_server = urlparse(server)
     if not server or parsed_server.scheme not in {"http", "https"} or not parsed_server.netloc:
