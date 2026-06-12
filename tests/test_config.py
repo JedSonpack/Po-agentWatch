@@ -1,0 +1,53 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from agent_watch.config import DEFAULT_CONFIG, load_config, save_config, validate_config
+
+
+class ConfigTest(unittest.TestCase):
+    def test_load_config_returns_defaults_when_file_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = load_config(Path(tmp) / ".agent-watch" / "config.json")
+
+        self.assertEqual(config["bark"]["server"], "https://api.day.app")
+        self.assertEqual(config["bark"]["level"], "timeSensitive")
+        self.assertEqual(config["message"]["title_template"], "Codex 已完成：{project}")
+
+    def test_load_config_merges_partial_user_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".agent-watch" / "config.json"
+            path.parent.mkdir()
+            path.write_text(
+                json.dumps({"message": {"max_body_chars": 80}}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+
+        self.assertEqual(config["message"]["max_body_chars"], 80)
+        self.assertEqual(config["bark"]["sound"], DEFAULT_CONFIG["bark"]["sound"])
+
+    def test_save_config_creates_parent_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".agent-watch" / "config.json"
+            config = load_config(path)
+            config["bark"]["key"] = "abc123"
+
+            save_config(config, path)
+
+            stored = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(stored["bark"]["key"], "abc123")
+
+    def test_validate_config_rejects_invalid_max_body_chars(self):
+        config = load_config(Path("/tmp/not-created.json"))
+        config["message"]["max_body_chars"] = 5
+
+        errors = validate_config(config)
+
+        self.assertIn("消息正文长度至少为 20 个字符。", errors)
+
+
+if __name__ == "__main__":
+    unittest.main()
