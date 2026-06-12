@@ -10,6 +10,8 @@ The project is intended for GitHub distribution, so the repository must contain 
 
 The notification format is watch-first. The watch notification should stay short, readable, and useful without relying on images. Phone notifications may include richer Bark options such as a Logo URL, sound, and notification level.
 
+The default audience is Chinese-speaking users. UI copy, default notification templates, README quick-start instructions, validation messages, and installation guidance should be written first for a Chinese user context. English documentation may exist, but it must not drive the product experience.
+
 The UI should use a single-page left/right layout:
 
 - Left side: Bark connection settings and message template controls.
