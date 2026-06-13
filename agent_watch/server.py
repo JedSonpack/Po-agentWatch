@@ -59,6 +59,8 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
     escaped_for_shell = sample_json.replace("'", "'\\''")
 
     # Claude Code 的 hook 配置片段（settings.json）
+    # 同时挂 Stop（任务完成）和 Notification（等你授权 / 等你输入）
+    # 两个时机的标题不同：Stop=「Agent 已完成...」、Notification=「⏸ Claude 等你确认...」
     claude_settings = {
         "hooks": {
             "Stop": [
@@ -70,7 +72,17 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
                         }
                     ]
                 }
-            ]
+            ],
+            "Notification": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"python3 {script}",
+                        }
+                    ]
+                }
+            ],
         }
     }
     claude_settings_text = json.dumps(claude_settings, ensure_ascii=False, indent=2)
@@ -106,14 +118,17 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
             "id": "claude",
             "label": "Claude Code",
             "intro": (
-                "Claude Code 通过 Stop hook 在主回复结束时触发命令，"
-                "事件 JSON 通过 stdin 传给脚本。"
+                "Claude Code 通过 hook 触发命令，事件 JSON 通过 stdin 传给脚本。"
+                "下面同时配置了两个 hook 点："
+                "Stop（主回复结束 = 任务跑完）和 Notification（Claude 主动弹窗，"
+                "通常是请求权限或长时间空闲），各自的通知标题会自动区分。"
+                "想只接其一可删掉对应数组。"
             ),
             "step1_title": "步骤 1：把下面的 hooks 配置合并进 ~/.claude/settings.json",
             "step1_desc": (
-                "如果 settings.json 已存在 hooks 节点，把 Stop 数组追加进去；"
+                "如果 settings.json 已存在 hooks 节点，把 Stop / Notification 数组追加进去；"
                 "否则直接用下面这段做整个文件。"
-                "这告诉 Claude Code 每次主回复结束就调用 notify_watch.py。"
+                "Stop 让你知道「任务跑完了」，Notification 让你知道「Claude 卡在等你了」。"
             ),
             "step1_code": claude_settings_text,
             "step1_lang": "json",
@@ -122,6 +137,8 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
                 "Claude 是通过 stdin 传 JSON 的，所以这里用 echo 管道输入。"
                 "transcript_path 给个不存在的路径也没关系，"
                 "脚本会优雅降级成「任务已完成。」。"
+                "想测 Notification 时，把 hook_event_name 改成 Notification、"
+                "再加一个 message 字段即可。"
             ),
             "step2_code": (
                 "echo '{\"hook_event_name\":\"Stop\","

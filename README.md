@@ -125,15 +125,60 @@ notify = ["python3", "/你的/路径/notify_watch.py"]
           { "type": "command", "command": "python3 /你的/路径/notify_watch.py" }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 /你的/路径/notify_watch.py" }
+        ]
+      }
     ]
   }
 }
 ```
 
-下次 Claude Code 主回复结束（Stop hook 触发），手机就会响。
+下次 Claude Code：
+- **主回复结束**（Stop hook）→ 推送「Agent 已完成」
+- **请求授权 / 等待你输入**（Notification hook）→ 推送「⏸ Claude 等你确认」
+
+两个时机的标题会自动区分，**不会让你以为「等授权」是「跑完了」**。
 
 > 📌 本工具**不会自动改你的全局配置**，需要你自己复制粘贴一次。
 > 同一个 `notify_watch.py` 同时支持两种 Agent —— 内部会自动判别事件类型并适配。
+
+---
+
+## 🪝 Claude Code Hook 点选择
+
+Claude Code 提供 8 个 hook 点，挂哪个就在哪个时机震表。下表是**适合用来推送通知**的几个：
+
+| Hook | 触发时机 | 推荐挂吗 | 标题 |
+|---|---|---|---|
+| `Stop` | 主回复结束（一轮对话完成） | ⭐ 强烈推荐 | `Agent 已完成：{project}` |
+| `Notification` | Claude 主动弹窗（请求权限 / 等待输入） | ⭐ 强烈推荐 | `⏸ Claude 等你确认：{project}` |
+| `SubagentStop` | 子 agent（Task tool）回复结束 | 重度用户可挂 | 暂未支持 |
+| `PreToolUse` | 工具调用前 | ❌ 太吵 | — |
+| `PostToolUse` | 工具调用后 | ❌ 太吵 | — |
+| `UserPromptSubmit` / `SessionStart` / `SessionEnd` | 输入 / 启动 / 关闭 session | ❌ 不需要通知 | — |
+
+### 推荐策略
+
+| 场景 | 推荐挂法 |
+|---|---|
+| **轻度用户** —— 只想知道任务跑完 | 只挂 `Stop` |
+| **中度用户** —— 怕错过权限询问（推荐 ⭐） | 挂 `Stop` + `Notification` |
+| **重度用户** —— 子任务也想追踪 | 三个都挂（小心通知轰炸） |
+
+UI 给的默认配置就是「中度用户」方案 —— `Stop` + `Notification` 同时挂上。
+
+### 实践方法
+
+1. **想体验「等授权也震一下」**：直接用 UI 给的 JSON，里面已经包含两个 hook 点。
+2. **想只接 Stop（轻度）**：把 JSON 里的 `"Notification"` 数组整段删掉。
+3. **想只接 Notification**：反过来，把 `"Stop"` 数组删掉。
+4. **想自己加 SubagentStop 等**：当前 `notify.py` 还没认这些事件，会被静默忽略 —— 提个 issue 我加支持。
+
+> 💡 同一个 `notify_watch.py` 处理所有 hook —— 内部 `normalize_event()` 看 `hook_event_name` 字段决定怎么渲染标题，下游 Bark 推送链路一行不动。
 
 ---
 
