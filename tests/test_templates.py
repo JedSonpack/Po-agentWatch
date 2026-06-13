@@ -24,6 +24,10 @@ class TemplateTest(unittest.TestCase):
         self.assertNotIn("print(secret)", text)
         self.assertIn("代码省略", text)
 
+    def test_collapse_text_preserves_plain_angle_brackets(self):
+        text = collapse_text("x < y > z")
+        self.assertEqual(text, "x < y > z")
+
     def test_shorten_prefers_sentence_boundary(self):
         result = shorten("第一句很重要。第二句会被截断，因为内容太长。", 10)
         self.assertEqual(result, "第一句很重要。...")

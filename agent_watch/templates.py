@@ -18,7 +18,7 @@ def collapse_text(value: Any) -> str:
         value = json.dumps(value, ensure_ascii=False)
     value = re.sub(r"```.*?```", " [代码省略] ", value, flags=re.DOTALL)
     value = re.sub(r"```[\s\S]*$", " [代码省略] ", value)
-    value = re.sub(r"<[^>]+>", " ", value)
+    value = re.sub(r"</?[A-Za-z][^>]*>", " ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value
 
