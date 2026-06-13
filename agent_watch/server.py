@@ -21,6 +21,11 @@ SAMPLE_EVENT = {
 }
 
 
+# 仓库根目录：agent_watch/server.py → 上两级。这样无论用户把仓库放在哪、
+# 从哪个目录启动服务，notify_watch.py 路径都能正确解析。
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
 def preview_payload(config: dict[str, Any]) -> dict[str, Any]:
     rendered = render_message(SAMPLE_EVENT, config.get("message", {}))
     icon = str(config.get("bark", {}).get("icon", "")).strip()
@@ -42,26 +47,44 @@ def save_config_payload(payload: dict[str, Any], path: Path) -> dict[str, Any]:
     if errors:
         return {"ok": False, "errors": errors}
     save_config(merged, path)
-    return {"ok": True, "config": merged}
+    # 把保存路径返回给前端，便于给用户显示「保存到了哪里」
+    return {"ok": True, "config": merged, "saved_path": str(path.resolve())}
 
 
 def build_install_snippet(notify_script: Path) -> dict[str, str]:
     script = str(notify_script.resolve())
+    # 用同一份 SAMPLE_EVENT 生成测试命令，确保「预览看到什么、命令跑出来就是什么」
+    sample_json = json.dumps(SAMPLE_EVENT, ensure_ascii=False, separators=(",", ":"))
+    # shell 单引号包裹 JSON，需要把 JSON 内的单引号转义为 '\''
+    escaped_for_shell = sample_json.replace("'", "'\\''")
     return {
         "toml": f'notify = ["python3", "{script}"]',
-        "note": "请手动把上面的 notify 配置加入 ~/.codex/config.toml；本工具不会自动修改你的 Codex 全局配置。",
-        "test_command": (
-            "python3 "
-            + script
-            + " '{\"type\":\"agent-turn-complete\",\"cwd\":\"/tmp/agent-watch\",\"last-assistant-message\":\"测试通知已发送。\",\"input-messages\":[\"测试\"]}'"
+        "intro": (
+            "Codex 在每个任务结束时会调用 notify 配置里的命令，把事件信息作为 JSON 传过来。"
+            "下面两步教你把 Agent Watch 接到 Codex；本工具不会自动修改你的 Codex 全局配置。"
+        ),
+        "step1_title": "步骤 1：把下面这一行加到 ~/.codex/config.toml",
+        "step1_desc": "这行配置告诉 Codex：每次任务结束，就用 python3 调用 notify_watch.py，由它把事件转换成 Bark 推送。",
+        "step2_title": "步骤 2（可选）：在终端先测一下脚本能不能跑通",
+        "step2_desc": (
+            "下面这条命令模拟了 Codex 真实调用时传给脚本的 JSON 事件，"
+            "用的就是上方「预览」里看到的同一份示例数据。"
+            "执行后你的手机应该会收到与预览一致的 Bark 通知；"
+            "如果收不到，说明脚本或 Bark 配置有问题，不用动 Codex 就能排查。"
+        ),
+        "test_command": f"python3 {script} '{escaped_for_shell}'",
+        # 兼容旧字段，保持 API 不破坏现有调用方
+        "note": (
+            "Codex 在每个任务结束时会调用 notify 配置里的命令。"
+            "请手动把下方的 notify 配置加入 ~/.codex/config.toml；本工具不会自动修改你的 Codex 全局配置。"
         ),
     }
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    config_path = Path.cwd() / ".agent-watch" / "config.json"
+    config_path = REPO_ROOT / ".agent-watch" / "config.json"
     static_dir = Path(__file__).parent / "static"
-    notify_script = Path.cwd() / "notify_watch.py"
+    notify_script = REPO_ROOT / "notify_watch.py"
 
     def _json(self, status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")

@@ -38,6 +38,16 @@ class ServerTest(unittest.TestCase):
         self.assertIn('notify = ["python3", "/repo/notify_watch.py"]', snippet["toml"])
         self.assertIn("手动", snippet["note"])
 
+    def test_build_install_snippet_test_command_uses_sample_event(self):
+        """测试命令必须用 SAMPLE_EVENT 序列化生成，保证「预览看到什么、命令跑出来就是什么」。"""
+        from agent_watch.server import SAMPLE_EVENT
+
+        snippet = build_install_snippet(Path("/repo/notify_watch.py"))
+        # 预览里展示的关键字段必须出现在测试命令里
+        self.assertIn(SAMPLE_EVENT["last-assistant-message"], snippet["test_command"])
+        self.assertIn(SAMPLE_EVENT["cwd"], snippet["test_command"])
+        self.assertIn(SAMPLE_EVENT["input-messages"][0], snippet["test_command"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,7 @@
           <label>Bark Server <input name="server" autocomplete="off"></label>
           <label>Bark Key <input name="key" type="password" autocomplete="off"></label>
           <label>Logo URL <input name="icon" autocomplete="off" placeholder="https://example.com/logo.png"></label>
+          <p class="field-hint">仅在 iPhone 通知上显示；华为 / 小米等第三方手表只会同步文字，不会显示图片。</p>
           <div class="grid-2">
             <label>通知级别 <input name="level" autocomplete="off"></label>
             <label>声音 <input name="sound" autocomplete="off"></label>
@@ -68,11 +69,21 @@
         </div>
       </section>
 
-      <section>
+      <section class="install">
         <h2>手动安装到 Codex</h2>
-        <p id="install-note"></p>
-        <pre><code id="install-toml"></code></pre>
-        <pre><code id="test-command"></code></pre>
+        <p id="install-intro" class="install-intro"></p>
+
+        <article class="install-step">
+          <h3 id="install-step1-title"></h3>
+          <p id="install-step1-desc" class="install-desc"></p>
+          <pre><code id="install-toml"></code></pre>
+        </article>
+
+        <article class="install-step">
+          <h3 id="install-step2-title"></h3>
+          <p id="install-step2-desc" class="install-desc"></p>
+          <pre><code id="test-command"></code></pre>
+        </article>
       </section>
 
       <p id="status" role="status"></p>

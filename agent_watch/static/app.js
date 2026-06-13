@@ -70,8 +70,12 @@ async function loadInitialState() {
   applyConfig(configPayload.config);
   renderPreview(await requestJson("/api/preview"));
   const install = await requestJson("/api/install-snippet");
-  document.querySelector("#install-note").textContent = install.note;
+  document.querySelector("#install-intro").textContent = install.intro || install.note || "";
+  document.querySelector("#install-step1-title").textContent = install.step1_title || "步骤 1";
+  document.querySelector("#install-step1-desc").textContent = install.step1_desc || "";
   document.querySelector("#install-toml").textContent = install.toml;
+  document.querySelector("#install-step2-title").textContent = install.step2_title || "步骤 2";
+  document.querySelector("#install-step2-desc").textContent = install.step2_desc || "";
   document.querySelector("#test-command").textContent = install.test_command;
 }
 
@@ -103,7 +107,9 @@ form.addEventListener("submit", async (event) => {
     });
     applyConfig(saved.config);
     await refreshPreview();
-    statusEl.textContent = "配置已保存。";
+    statusEl.textContent = saved.saved_path
+      ? `配置已保存到 ${saved.saved_path}`
+      : "配置已保存。";
   } catch (error) {
     statusEl.textContent = error.message;
   }
