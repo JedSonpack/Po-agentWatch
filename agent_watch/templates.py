@@ -9,6 +9,10 @@ from typing import Any
 
 
 SUPPORTED_VARIABLES = {"project", "summary", "last_input", "cwd", "time"}
+HTML_TAG_PATTERN = (
+    r"</?[A-Za-z][A-Za-z0-9-]*\s*/?>"
+    r"|</?[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][-A-Za-z0-9_:.]*\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s<>]+))+\s*/?>"
+)
 
 
 def collapse_text(value: Any) -> str:
@@ -18,7 +22,7 @@ def collapse_text(value: Any) -> str:
         value = json.dumps(value, ensure_ascii=False)
     value = re.sub(r"```.*?```", " [代码省略] ", value, flags=re.DOTALL)
     value = re.sub(r"```[\s\S]*$", " [代码省略] ", value)
-    value = re.sub(r"</?[A-Za-z][^>]*>", " ", value)
+    value = re.sub(HTML_TAG_PATTERN, " ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value
 
@@ -76,25 +80,50 @@ def variables_for_event(event: dict[str, Any]) -> dict[str, str]:
 def _validate_template(template: str) -> None:
     formatter = string.Formatter()
     try:
-        parts = list(formatter.parse(template))
+        list(formatter.parse(template))
     except ValueError:
         raise ValueError("模板格式无效：请检查花括号。") from None
 
-    for _, field_name, format_spec, conversion in parts:
-        if field_name is None:
+    index = 0
+    length = len(template)
+    while index < length:
+        char = template[index]
+        if char == "{":
+            if index + 1 < length and template[index + 1] == "{":
+                index += 2
+                continue
+
+            depth = 1
+            end = index + 1
+            while end < length and depth > 0:
+                if template[end] == "{":
+                    depth += 1
+                elif template[end] == "}":
+                    depth -= 1
+                end += 1
+
+            field_name = template[index + 1 : end - 1]
+            if field_name == "":
+                raise ValueError("模板格式无效：只支持裸变量。")
+            if any(marker in field_name for marker in (":", "!")):
+                raise ValueError("模板格式无效：只支持裸变量。")
+            if field_name not in SUPPORTED_VARIABLES:
+                raise ValueError(f"未知模板变量：{field_name}")
+            index = end
             continue
-        if field_name == "":
-            raise ValueError("模板格式无效：只支持裸变量。")
-        if conversion or format_spec:
-            raise ValueError("模板格式无效：只支持裸变量。")
-        if field_name and field_name not in SUPPORTED_VARIABLES:
-            raise ValueError(f"未知模板变量：{field_name}")
+        if char == "}" and index + 1 < length and template[index + 1] == "}":
+            index += 2
+            continue
+        index += 1
 
 
 def render_message(event: dict[str, Any], message_config: dict[str, Any]) -> dict[str, str]:
     title_template = str(message_config.get("title_template", "Codex 已完成：{project}"))
     body_template = str(message_config.get("body_template", "{summary}"))
-    max_body_chars = int(message_config.get("max_body_chars", 160))
+    try:
+        max_body_chars = int(message_config.get("max_body_chars", 160))
+    except (TypeError, ValueError):
+        raise ValueError("消息正文长度必须是整数。") from None
 
     _validate_template(title_template)
     _validate_template(body_template)

@@ -28,6 +28,10 @@ class TemplateTest(unittest.TestCase):
         text = collapse_text("x < y > z")
         self.assertEqual(text, "x < y > z")
 
+    def test_collapse_text_preserves_technical_angle_brackets(self):
+        text = collapse_text("命令 <npm run test> 执行失败")
+        self.assertEqual(text, "命令 <npm run test> 执行失败")
+
     def test_shorten_prefers_sentence_boundary(self):
         result = shorten("第一句很重要。第二句会被截断，因为内容太长。", 10)
         self.assertEqual(result, "第一句很重要。...")
@@ -66,6 +70,7 @@ class TemplateTest(unittest.TestCase):
     def test_render_message_rejects_invalid_template_syntax(self):
         cases = [
             ("{}", "只支持裸变量"),
+            ("{project:}", "只支持裸变量"),
             ("{project!r}", "只支持裸变量"),
             ("{project:>10}", "只支持裸变量"),
             ("{project:{time}}", "只支持裸变量"),
@@ -100,6 +105,21 @@ class TemplateTest(unittest.TestCase):
         self.assertNotIn("Single", message)
         self.assertNotIn("encountered", message)
         self.assertNotIn("format string", message)
+
+    def test_render_message_reports_chinese_error_for_invalid_max_body_chars(self):
+        with self.assertRaises(ValueError) as ctx:
+            render_message(
+                SAMPLE_EVENT,
+                {
+                    "title_template": "{project}",
+                    "body_template": "{summary}",
+                    "max_body_chars": "abc",
+                },
+            )
+
+        message = str(ctx.exception)
+        self.assertEqual(message, "消息正文长度必须是整数。")
+        self.assertNotIn("invalid literal", message)
 
 
 if __name__ == "__main__":
