@@ -189,6 +189,49 @@ pre {
   margin: -6px 0 12px;
 }
 
+.agent-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #d9e2ec;
+  margin: 0 0 14px;
+}
+
+.agent-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #5b6776;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.agent-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.agent-tab:hover {
+  color: #17202a;
+}
+
+.agent-panel {
+  display: none;
+}
+
+.agent-panel.active {
+  display: block;
+}
+
+.agent-intro {
+  color: #5b6776;
+  line-height: 1.6;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
 #status {
   min-height: 24px;
   color: #166534;

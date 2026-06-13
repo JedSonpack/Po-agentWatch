@@ -13,7 +13,7 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(config["bark"]["server"], "https://api.day.app")
         self.assertEqual(config["bark"]["level"], "timeSensitive")
-        self.assertEqual(config["message"]["title_template"], "Codex 已完成：{project}")
+        self.assertEqual(config["message"]["title_template"], "Agent 已完成：{project}")
 
     def test_load_config_merges_partial_user_config(self):
         with tempfile.TemporaryDirectory() as tmp:

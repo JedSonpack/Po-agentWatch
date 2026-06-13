@@ -11,8 +11,8 @@
     <section class="editor">
       <header>
         <p class="eyebrow">Agent Watch</p>
-        <h1>定制 Codex 完成通知</h1>
-        <p class="intro">为手表优先优化短提醒，同时保留手机 Bark 通知的 Logo、声音和通知级别。</p>
+        <h1>定制 AI Agent 完成通知</h1>
+        <p class="intro">支持 Codex 和 Claude Code，为手表优先优化短提醒，同时保留手机 Bark 通知的 Logo、声音和通知级别。</p>
       </header>
 
       <form id="config-form">
@@ -70,20 +70,10 @@
       </section>
 
       <section class="install">
-        <h2>手动安装到 Codex</h2>
+        <h2>手动接入 AI Agent</h2>
         <p id="install-intro" class="install-intro"></p>
-
-        <article class="install-step">
-          <h3 id="install-step1-title"></h3>
-          <p id="install-step1-desc" class="install-desc"></p>
-          <pre><code id="install-toml"></code></pre>
-        </article>
-
-        <article class="install-step">
-          <h3 id="install-step2-title"></h3>
-          <p id="install-step2-desc" class="install-desc"></p>
-          <pre><code id="test-command"></code></pre>
-        </article>
+        <div id="agent-tabs" class="agent-tabs" role="tablist"></div>
+        <div id="agent-panels" class="agent-panels"></div>
       </section>
 
       <p id="status" role="status"></p>

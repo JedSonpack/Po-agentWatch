@@ -38,6 +38,16 @@ def build_bark_request(bark_config: dict[str, Any], title: str, body: str) -> ur
     )
 
 
+def _build_direct_opener() -> urllib.request.OpenerDirector:
+    """构造一个绕开系统代理 / 环境变量代理的 opener。
+
+    Bark 的服务（api.day.app 或自部署）通常是国内可直连的服务，
+    走代理反而会引发 SSL 握手超时（特别是用户开了 Clash 等工具时）。
+    显式塞一个空 ProxyHandler 让 urllib 不读 macOS 系统代理设置。
+    """
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
 def send_bark(
     bark_config: dict[str, Any],
     title: str,
@@ -45,7 +55,7 @@ def send_bark(
     opener: Callable[..., Any] | None = None,
 ) -> None:
     request = build_bark_request(bark_config, title, body)
-    urlopen = opener or urllib.request.urlopen
+    urlopen = opener or _build_direct_opener().open
     try:
         with urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
             response.read()

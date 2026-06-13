@@ -16,7 +16,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "icon": "",
     },
     "message": {
-        "title_template": "Codex 已完成：{project}",
+        "title_template": "Agent 已完成：{project}",
         "body_template": "{summary}",
         "max_body_chars": 160,
     },

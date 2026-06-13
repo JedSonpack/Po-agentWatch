@@ -65,18 +65,72 @@ async function refreshPreview() {
   renderPreview(payload);
 }
 
+function renderAgentInstaller(install) {
+  const tabsEl = document.querySelector("#agent-tabs");
+  const panelsEl = document.querySelector("#agent-panels");
+  tabsEl.innerHTML = "";
+  panelsEl.innerHTML = "";
+
+  const agents = Array.isArray(install.agents) ? install.agents : [];
+  if (agents.length === 0) return;
+
+  agents.forEach((agent, index) => {
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = "agent-tab" + (index === 0 ? " active" : "");
+    tab.textContent = agent.label;
+    tab.dataset.agent = agent.id;
+    tab.setAttribute("role", "tab");
+    tabsEl.appendChild(tab);
+
+    const panel = document.createElement("div");
+    panel.className = "agent-panel" + (index === 0 ? " active" : "");
+    panel.dataset.agent = agent.id;
+    panel.innerHTML = `
+      <p class="agent-intro">${escapeHtml(agent.intro || "")}</p>
+      <article class="install-step">
+        <h3>${escapeHtml(agent.step1_title || "")}</h3>
+        <p class="install-desc">${escapeHtml(agent.step1_desc || "")}</p>
+        <pre><code>${escapeHtml(agent.step1_code || "")}</code></pre>
+      </article>
+      <article class="install-step">
+        <h3>${escapeHtml(agent.step2_title || "")}</h3>
+        <p class="install-desc">${escapeHtml(agent.step2_desc || "")}</p>
+        <pre><code>${escapeHtml(agent.step2_code || "")}</code></pre>
+      </article>
+    `;
+    panelsEl.appendChild(panel);
+  });
+
+  tabsEl.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-agent]");
+    if (!target) return;
+    const id = target.dataset.agent;
+    tabsEl.querySelectorAll(".agent-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.agent === id);
+    });
+    panelsEl.querySelectorAll(".agent-panel").forEach((p) => {
+      p.classList.toggle("active", p.dataset.agent === id);
+    });
+  });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 async function loadInitialState() {
   const configPayload = await requestJson("/api/config");
   applyConfig(configPayload.config);
   renderPreview(await requestJson("/api/preview"));
   const install = await requestJson("/api/install-snippet");
   document.querySelector("#install-intro").textContent = install.intro || install.note || "";
-  document.querySelector("#install-step1-title").textContent = install.step1_title || "步骤 1";
-  document.querySelector("#install-step1-desc").textContent = install.step1_desc || "";
-  document.querySelector("#install-toml").textContent = install.toml;
-  document.querySelector("#install-step2-title").textContent = install.step2_title || "步骤 2";
-  document.querySelector("#install-step2-desc").textContent = install.step2_desc || "";
-  document.querySelector("#test-command").textContent = install.test_command;
+  renderAgentInstaller(install);
 }
 
 form.addEventListener("focusin", (event) => {

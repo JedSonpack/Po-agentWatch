@@ -51,32 +51,102 @@ def save_config_payload(payload: dict[str, Any], path: Path) -> dict[str, Any]:
     return {"ok": True, "config": merged, "saved_path": str(path.resolve())}
 
 
-def build_install_snippet(notify_script: Path) -> dict[str, str]:
+def build_install_snippet(notify_script: Path) -> dict[str, Any]:
     script = str(notify_script.resolve())
     # 用同一份 SAMPLE_EVENT 生成测试命令，确保「预览看到什么、命令跑出来就是什么」
     sample_json = json.dumps(SAMPLE_EVENT, ensure_ascii=False, separators=(",", ":"))
     # shell 单引号包裹 JSON，需要把 JSON 内的单引号转义为 '\''
     escaped_for_shell = sample_json.replace("'", "'\\''")
+
+    # Claude Code 的 hook 配置片段（settings.json）
+    claude_settings = {
+        "hooks": {
+            "Stop": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"python3 {script}",
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    claude_settings_text = json.dumps(claude_settings, ensure_ascii=False, indent=2)
+
+    intro = (
+        "Agent Watch 通过订阅 Agent 的「任务完成」事件来推送通知。"
+        "下面给出 Codex 和 Claude Code 两种主流 Agent 的接入方法；"
+        "本工具不会自动修改你的全局配置，需要手动复制粘贴。"
+    )
+
+    agents = [
+        {
+            "id": "codex",
+            "label": "Codex",
+            "intro": "Codex（OpenAI Agent CLI）在每个任务结束时调用 notify 配置里的命令。",
+            "step1_title": "步骤 1：把下面这一行加到 ~/.codex/config.toml",
+            "step1_desc": (
+                "这行配置告诉 Codex：每次任务结束，就用 python3 调用 notify_watch.py，"
+                "由它把事件转换成 Bark 推送。"
+            ),
+            "step1_code": f'notify = ["python3", "{script}"]',
+            "step1_lang": "toml",
+            "step2_title": "步骤 2（可选）：在终端先测一下脚本能不能跑通",
+            "step2_desc": (
+                "这条命令模拟了 Codex 真实调用时传给脚本的 JSON 事件，"
+                "用的就是上方「预览」里看到的同一份示例数据。"
+                "执行后你的手机应该收到一条与预览一致的 Bark 通知。"
+            ),
+            "step2_code": f"python3 {script} '{escaped_for_shell}'",
+            "step2_lang": "bash",
+        },
+        {
+            "id": "claude",
+            "label": "Claude Code",
+            "intro": (
+                "Claude Code 通过 Stop hook 在主回复结束时触发命令，"
+                "事件 JSON 通过 stdin 传给脚本。"
+            ),
+            "step1_title": "步骤 1：把下面的 hooks 配置合并进 ~/.claude/settings.json",
+            "step1_desc": (
+                "如果 settings.json 已存在 hooks 节点，把 Stop 数组追加进去；"
+                "否则直接用下面这段做整个文件。"
+                "这告诉 Claude Code 每次主回复结束就调用 notify_watch.py。"
+            ),
+            "step1_code": claude_settings_text,
+            "step1_lang": "json",
+            "step2_title": "步骤 2（可选）：在终端模拟一次 Claude Stop 事件",
+            "step2_desc": (
+                "Claude 是通过 stdin 传 JSON 的，所以这里用 echo 管道输入。"
+                "transcript_path 给个不存在的路径也没关系，"
+                "脚本会优雅降级成「任务已完成。」。"
+            ),
+            "step2_code": (
+                "echo '{\"hook_event_name\":\"Stop\","
+                "\"transcript_path\":\"/tmp/nope.jsonl\","
+                "\"cwd\":\"/Users/demo/project/agent-watch\","
+                "\"session_id\":\"demo\"}' | "
+                f"python3 {script}"
+            ),
+            "step2_lang": "bash",
+        },
+    ]
+
     return {
-        "toml": f'notify = ["python3", "{script}"]',
-        "intro": (
-            "Codex 在每个任务结束时会调用 notify 配置里的命令，把事件信息作为 JSON 传过来。"
-            "下面两步教你把 Agent Watch 接到 Codex；本工具不会自动修改你的 Codex 全局配置。"
-        ),
-        "step1_title": "步骤 1：把下面这一行加到 ~/.codex/config.toml",
-        "step1_desc": "这行配置告诉 Codex：每次任务结束，就用 python3 调用 notify_watch.py，由它把事件转换成 Bark 推送。",
-        "step2_title": "步骤 2（可选）：在终端先测一下脚本能不能跑通",
-        "step2_desc": (
-            "下面这条命令模拟了 Codex 真实调用时传给脚本的 JSON 事件，"
-            "用的就是上方「预览」里看到的同一份示例数据。"
-            "执行后你的手机应该会收到与预览一致的 Bark 通知；"
-            "如果收不到，说明脚本或 Bark 配置有问题，不用动 Codex 就能排查。"
-        ),
-        "test_command": f"python3 {script} '{escaped_for_shell}'",
-        # 兼容旧字段，保持 API 不破坏现有调用方
+        "intro": intro,
+        "agents": agents,
+        # ----- 兼容字段，保留旧前端不报错 -----
+        "toml": agents[0]["step1_code"],
+        "step1_title": agents[0]["step1_title"],
+        "step1_desc": agents[0]["step1_desc"],
+        "step2_title": agents[0]["step2_title"],
+        "step2_desc": agents[0]["step2_desc"],
+        "test_command": agents[0]["step2_code"],
         "note": (
-            "Codex 在每个任务结束时会调用 notify 配置里的命令。"
-            "请手动把下方的 notify 配置加入 ~/.codex/config.toml；本工具不会自动修改你的 Codex 全局配置。"
+            "Codex / Claude Code 任务结束时会调用 notify 配置里的命令。"
+            "请手动把下方的配置加入对应的全局配置文件；本工具不会自动修改你的 Agent 全局配置。"
         ),
     }
 

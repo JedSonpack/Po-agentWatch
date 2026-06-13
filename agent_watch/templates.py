@@ -121,7 +121,7 @@ def _validate_template(template: str) -> None:
 
 
 def render_message(event: dict[str, Any], message_config: dict[str, Any]) -> dict[str, str]:
-    raw_title_template = message_config.get("title_template", "Codex 已完成：{project}")
+    raw_title_template = message_config.get("title_template", "Agent 已完成：{project}")
     if not isinstance(raw_title_template, str):
         raise ValueError("标题模板必须是字符串。")
     title_template = raw_title_template
