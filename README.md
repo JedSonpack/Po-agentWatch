@@ -43,7 +43,6 @@ Codex / Claude Code 任务完成
 | **后端** | `http.server.ThreadingHTTPServer` 启个本地 Web UI |
 | **前端** | 原生 HTML / CSS / JS，无构建、无框架 |
 | **推送** | [Bark](https://github.com/Finb/Bark)（开源 iOS 推送通道） |
-| **测试** | `unittest`，覆盖渲染、配置、Bark 客户端、Server API、Claude/Codex 事件归一化（测试代码仅本地保留） |
 | **配置** | `~/.agent-watch/config.json`，用户级，所有项目共用，已 git-ignore |
 
 设计原则：
@@ -213,7 +212,6 @@ Po-agentWatch/
 │   ├── templates.py          # 标题/正文模板渲染、智能截断
 │   ├── notify.py             # 事件解析、Codex/Claude 归一化、分发
 │   └── static/               # UI 前端（HTML/CSS/JS）
-├── tests/                    # 单元测试（仅本地保留，未随仓库发布）
 ├── examples/config.example.json
 └── ~/.agent-watch/config.json    # 用户级配置，UI 自动生成
                                   # （不在仓库内，所有项目共用一份）
@@ -276,18 +274,6 @@ A：打开 Bark App → 设置 → **重置 Key**，再到 UI 里粘贴新的 Ke
 
 ### Q：我手动调脚本测试时一直读不到 transcript 怎么办？
 A：Claude 模式下脚本会去读 `transcript_path` 指向的 JSONL 文件。终端模拟时给个不存在的路径**也没事**——脚本会优雅降级成「任务已完成。」，仍然能推送。
-
----
-
-## 🧪 开发 / 跑测试
-
-> 测试代码 (`tests/`) 仅在维护者本地保留，未随仓库发布。如需从源码完整开发，请联系作者获取测试套件。
-
-如果你本地有 `tests/` 目录：
-
-```bash
-python3 -m unittest discover -s tests -v
-```
 
 ---
 
