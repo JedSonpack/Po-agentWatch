@@ -97,7 +97,12 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
         {
             "id": "codex",
             "label": "Codex",
-            "intro": "Codex（OpenAI Agent CLI）在每个任务结束时调用 notify 配置里的命令。",
+            "intro": (
+                "Codex（OpenAI Agent CLI）在每个任务（turn）结束时调用 notify 配置里的命令。"
+                "Codex 的事件模型只有 agent-turn-complete 一种——它没有 Claude Code 那样的"
+                "「等待用户授权」独立事件，是在 TUI 里直接阻塞等输入、不调外部 notify。"
+                "所以下面一行就够了，不需要挂多个 hook 点。"
+            ),
             "step1_title": "步骤 1：把下面这一行加到 ~/.codex/config.toml",
             "step1_desc": (
                 "这行配置告诉 Codex：每次任务结束，就用 python3 调用 notify_watch.py，"
@@ -132,17 +137,24 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
             ),
             "step1_code": claude_settings_text,
             "step1_lang": "json",
-            "step2_title": "步骤 2（可选）：在终端模拟一次 Claude Stop 事件",
+            "step2_title": "步骤 2（可选）：在终端模拟两种 Claude 事件各跑一次",
             "step2_desc": (
                 "Claude 是通过 stdin 传 JSON 的，所以这里用 echo 管道输入。"
-                "transcript_path 给个不存在的路径也没关系，"
-                "脚本会优雅降级成「任务已完成。」。"
-                "想测 Notification 时，把 hook_event_name 改成 Notification、"
-                "再加一个 message 字段即可。"
+                "下面给了两条命令：第一条模拟 Stop（任务跑完），第二条模拟 Notification"
+                "（Claude 等你确认）。两条都跑一遍，应该收到两条标题不同的推送，证明两个"
+                "hook 点都打通了。transcript_path 给个不存在的路径也没关系，脚本会优雅"
+                "降级成「任务已完成。」。"
             ),
             "step2_code": (
+                "# 测 Stop（任务跑完）\n"
                 "echo '{\"hook_event_name\":\"Stop\","
                 "\"transcript_path\":\"/tmp/nope.jsonl\","
+                "\"cwd\":\"/Users/demo/project/agent-watch\","
+                "\"session_id\":\"demo\"}' | "
+                f"python3 {script}\n\n"
+                "# 测 Notification（Claude 等你确认）\n"
+                "echo '{\"hook_event_name\":\"Notification\","
+                "\"message\":\"Claude needs permission to use Bash\","
                 "\"cwd\":\"/Users/demo/project/agent-watch\","
                 "\"session_id\":\"demo\"}' | "
                 f"python3 {script}"

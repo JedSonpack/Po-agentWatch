@@ -112,6 +112,8 @@ notify = ["python3", "/你的/路径/notify_watch.py"]
 
 下次 Codex 任务结束，手机就会响。
 
+> 📌 **Codex 的事件模型只有一种**：`type: agent-turn-complete`，每一轮 turn 结束时触发一次。Codex CLI 没有 Claude Code 那样的「等待用户授权」独立事件——它是直接在 TUI 里阻塞等输入，不会调外部 notify。所以 Codex 这一行配置就够了，不需要像 Claude 那样挂多个 hook 点。
+
 ### 接入 Claude Code
 
 把 UI 给的 hooks JSON 合并进 `~/.claude/settings.json`：
@@ -151,6 +153,8 @@ notify = ["python3", "/你的/路径/notify_watch.py"]
 ---
 
 ## 🪝 Claude Code Hook 点选择
+
+> Codex 用户可跳过本节——Codex 只有 `agent-turn-complete` 一种事件，没得挑。本节只对 Claude Code 用户有意义。
 
 Claude Code 提供 8 个 hook 点，挂哪个就在哪个时机震表。下表是**适合用来推送通知**的几个：
 
