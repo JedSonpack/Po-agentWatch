@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Watch</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="editor">
+      <header>
+        <p class="eyebrow">Agent Watch</p>
+        <h1>定制 Codex 完成通知</h1>
+        <p class="intro">为手表优先优化短提醒，同时保留手机 Bark 通知的 Logo、声音和通知级别。</p>
+      </header>
+
+      <form id="config-form">
+        <fieldset>
+          <legend>Bark 设置</legend>
+          <label>Bark Server <input name="server" autocomplete="off"></label>
+          <label>Bark Key <input name="key" type="password" autocomplete="off"></label>
+          <label>Logo URL <input name="icon" autocomplete="off" placeholder="https://example.com/logo.png"></label>
+          <div class="grid-2">
+            <label>通知级别 <input name="level" autocomplete="off"></label>
+            <label>声音 <input name="sound" autocomplete="off"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>消息模板</legend>
+          <label>标题模板 <input name="title_template"></label>
+          <label>正文模板 <textarea name="body_template" rows="4"></textarea></label>
+          <label>手表正文长度 <input name="max_body_chars" type="number" min="20" max="500"></label>
+          <div class="variables" aria-label="插入变量">
+            <button type="button" data-var="{project}">项目名</button>
+            <button type="button" data-var="{summary}">任务摘要</button>
+            <button type="button" data-var="{last_input}">用户输入</button>
+            <button type="button" data-var="{cwd}">工作目录</button>
+            <button type="button" data-var="{time}">时间</button>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit">保存配置</button>
+          <button type="button" id="test-send">发送测试通知</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="preview">
+      <section>
+        <h2>手表预览</h2>
+        <div class="watch-face">
+          <p id="watch-title"></p>
+          <p id="watch-body"></p>
+        </div>
+      </section>
+
+      <section>
+        <h2>手机预览</h2>
+        <div class="phone-card">
+          <img id="phone-icon" alt="" hidden>
+          <div>
+            <p id="phone-title"></p>
+            <p id="phone-body"></p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>手动安装到 Codex</h2>
+        <p id="install-note"></p>
+        <pre><code id="install-toml"></code></pre>
+        <pre><code id="test-command"></code></pre>
+      </section>
+
+      <p id="status" role="status"></p>
+    </aside>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
