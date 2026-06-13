@@ -9,9 +9,10 @@ from typing import Any
 
 
 SUPPORTED_VARIABLES = {"project", "summary", "last_input", "cwd", "time"}
-HTML_TAG_PATTERN = (
-    r"</?[A-Za-z][A-Za-z0-9-]*\s*/?>"
-    r"|</?[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][-A-Za-z0-9_:.]*\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s<>]+))+\s*/?>"
+HTML_TAG_PATTERN = re.compile(
+    r"</?(?:a|abbr|b|blockquote|br|code|div|em|h[1-6]|i|li|ol|p|pre|span|strong|ul)"
+    r"(?:\s+[^<>]*)?\s*/?>",
+    re.IGNORECASE,
 )
 
 
@@ -22,7 +23,7 @@ def collapse_text(value: Any) -> str:
         value = json.dumps(value, ensure_ascii=False)
     value = re.sub(r"```.*?```", " [代码省略] ", value, flags=re.DOTALL)
     value = re.sub(r"```[\s\S]*$", " [代码省略] ", value)
-    value = re.sub(HTML_TAG_PATTERN, " ", value)
+    value = HTML_TAG_PATTERN.sub(" ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value
 

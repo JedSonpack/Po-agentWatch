@@ -32,6 +32,22 @@ class TemplateTest(unittest.TestCase):
         text = collapse_text("命令 <npm run test> 执行失败")
         self.assertEqual(text, "命令 <npm run test> 执行失败")
 
+    def test_collapse_text_preserves_generic_type_placeholder(self):
+        text = collapse_text("接口返回 <T> 需要处理")
+        self.assertEqual(text, "接口返回 <T> 需要处理")
+
+    def test_collapse_text_preserves_inline_generic_type(self):
+        text = collapse_text("类型 List<User> 已更新")
+        self.assertEqual(text, "类型 List<User> 已更新")
+
+    def test_collapse_text_preserves_uppercase_placeholder(self):
+        text = collapse_text("占位符 <PATH> 未替换")
+        self.assertEqual(text, "占位符 <PATH> 未替换")
+
+    def test_collapse_text_removes_html_tags_with_attributes(self):
+        text = collapse_text('<span class="ok">成功</span>')
+        self.assertEqual(text, "成功")
+
     def test_shorten_prefers_sentence_boundary(self):
         result = shorten("第一句很重要。第二句会被截断，因为内容太长。", 10)
         self.assertEqual(result, "第一句很重要。...")
