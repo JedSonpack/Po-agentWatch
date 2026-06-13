@@ -83,6 +83,8 @@ def _validate_template(template: str) -> None:
     for _, field_name, format_spec, conversion in parts:
         if field_name is None:
             continue
+        if field_name == "":
+            raise ValueError("模板格式无效：只支持裸变量。")
         if conversion or format_spec:
             raise ValueError("模板格式无效：只支持裸变量。")
         if field_name and field_name not in SUPPORTED_VARIABLES:

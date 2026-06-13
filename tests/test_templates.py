@@ -62,6 +62,7 @@ class TemplateTest(unittest.TestCase):
     def test_render_message_rejects_invalid_template_syntax(self):
         cases = [
             ("{", "模板格式无效"),
+            ("{}", "只支持裸变量"),
             ("{project!r}", "只支持裸变量"),
             ("{project:>10}", "只支持裸变量"),
             ("{project:{time}}", "只支持裸变量"),
