@@ -17,6 +17,7 @@ def collapse_text(value: Any) -> str:
     if not isinstance(value, str):
         value = json.dumps(value, ensure_ascii=False)
     value = re.sub(r"```.*?```", " [代码省略] ", value, flags=re.DOTALL)
+    value = re.sub(r"```[\s\S]*$", " [代码省略] ", value)
     value = re.sub(r"<[^>]+>", " ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value
@@ -27,13 +28,21 @@ def shorten(text: Any, max_chars: int) -> str:
     if len(collapsed) <= max_chars:
         return collapsed
 
-    candidate = collapsed[:max_chars].rstrip()
+    if max_chars <= 0:
+        return ""
+
+    ellipsis = "..."[:max_chars]
+    budget = max_chars - len(ellipsis)
+    if budget <= 0:
+        return ellipsis
+
+    candidate = collapsed[:budget].rstrip()
     split_at = max(candidate.rfind(mark) for mark in ("。", "！", "？", ".", "!", "?", "；", ";"))
-    if split_at >= max(6, max_chars // 3):
+    if split_at >= max(2, budget // 3):
         candidate = candidate[: split_at + 1].rstrip()
     else:
         candidate = candidate.rstrip("，,、:：;；")
-    return candidate + "..."
+    return candidate + ellipsis
 
 
 def project_name(cwd: Any) -> str:
@@ -66,7 +75,16 @@ def variables_for_event(event: dict[str, Any]) -> dict[str, str]:
 
 def _validate_template(template: str) -> None:
     formatter = string.Formatter()
-    for _, field_name, _, _ in formatter.parse(template):
+    try:
+        parts = list(formatter.parse(template))
+    except ValueError as exc:
+        raise ValueError(f"模板格式无效：{exc}") from None
+
+    for _, field_name, format_spec, conversion in parts:
+        if field_name is None:
+            continue
+        if conversion or format_spec:
+            raise ValueError("模板格式无效：只支持裸变量。")
         if field_name and field_name not in SUPPORTED_VARIABLES:
             raise ValueError(f"未知模板变量：{field_name}")
 
@@ -80,6 +98,9 @@ def render_message(event: dict[str, Any], message_config: dict[str, Any]) -> dic
     _validate_template(body_template)
 
     variables = variables_for_event(event)
-    title = collapse_text(title_template.format(**variables))
-    body = shorten(body_template.format(**variables), max_body_chars)
+    try:
+        title = collapse_text(title_template.format(**variables))
+        body = shorten(body_template.format(**variables), max_body_chars)
+    except ValueError as exc:
+        raise ValueError(f"模板格式无效：{exc}") from None
     return {"title": title, "body": body}
