@@ -77,8 +77,8 @@ def _validate_template(template: str) -> None:
     formatter = string.Formatter()
     try:
         parts = list(formatter.parse(template))
-    except ValueError as exc:
-        raise ValueError(f"模板格式无效：{exc}") from None
+    except ValueError:
+        raise ValueError("模板格式无效：请检查花括号。") from None
 
     for _, field_name, format_spec, conversion in parts:
         if field_name is None:

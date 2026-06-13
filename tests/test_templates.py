@@ -61,7 +61,6 @@ class TemplateTest(unittest.TestCase):
 
     def test_render_message_rejects_invalid_template_syntax(self):
         cases = [
-            ("{", "模板格式无效"),
             ("{}", "只支持裸变量"),
             ("{project!r}", "只支持裸变量"),
             ("{project:>10}", "只支持裸变量"),
@@ -80,6 +79,23 @@ class TemplateTest(unittest.TestCase):
                         },
                     )
                 self.assertIn(expected_message, str(ctx.exception))
+
+    def test_render_message_reports_stable_chinese_error_for_bad_braces(self):
+        with self.assertRaises(ValueError) as ctx:
+            render_message(
+                SAMPLE_EVENT,
+                {
+                    "title_template": "{",
+                    "body_template": "{summary}",
+                    "max_body_chars": 80,
+                },
+            )
+
+        message = str(ctx.exception)
+        self.assertEqual(message, "模板格式无效：请检查花括号。")
+        self.assertNotIn("Single", message)
+        self.assertNotIn("encountered", message)
+        self.assertNotIn("format string", message)
 
 
 if __name__ == "__main__":
