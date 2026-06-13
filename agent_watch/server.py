@@ -169,7 +169,9 @@ def build_install_snippet(notify_script: Path) -> dict[str, Any]:
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    config_path = REPO_ROOT / ".agent-watch" / "config.json"
+    # 配置默认存到 ~/.agent-watch/config.json（用户级），所有项目共用同一份。
+    # Codex notify 和 Claude Code hook 在任意 cwd 下都能读到，不再需要每个项目复制一份。
+    config_path = Path.home() / ".agent-watch" / "config.json"
     static_dir = Path(__file__).parent / "static"
     notify_script = REPO_ROOT / "notify_watch.py"
 

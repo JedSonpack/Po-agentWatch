@@ -44,7 +44,7 @@ Codex / Claude Code 任务完成
 | **前端** | 原生 HTML / CSS / JS，无构建、无框架 |
 | **推送** | [Bark](https://github.com/Finb/Bark)（开源 iOS 推送通道） |
 | **测试** | `unittest`，覆盖渲染、配置、Bark 客户端、Server API、Claude/Codex 事件归一化（测试代码仅本地保留） |
-| **配置** | 项目本地 `.agent-watch/config.json` 优先；找不到自动回落到 `~/.agent-watch/config.json`，已 git-ignore |
+| **配置** | `~/.agent-watch/config.json`，用户级，所有项目共用，已 git-ignore |
 
 设计原则：
 - **零依赖** — clone 下来 `python3 agent_watch.py serve` 就能跑
@@ -145,17 +145,8 @@ notify = ["python3", "/你的/路径/notify_watch.py"]
 
 > 📌 本工具**不会自动改你的全局配置**，需要你自己复制粘贴一次。
 > 同一个 `notify_watch.py` 同时支持两种 Agent —— 内部会自动判别事件类型并适配。
-
-> ⚠️ **Claude Code 用户务必看这条**：Claude Code 触发 hook 时的工作目录是**当前会话目录**，不是 agent-watch 仓库目录。如果只在 `Po-agentWatch/.agent-watch/config.json` 里存了 Bark Key，从其它项目目录启动 Claude Code 时会读不到 key、推送被静默跳过。
 >
-> 解决方法：把配置复制一份到 `~/.agent-watch/config.json` 作为全局兜底——
->
-> ```bash
-> mkdir -p ~/.agent-watch
-> cp .agent-watch/config.json ~/.agent-watch/config.json
-> ```
->
-> `config.py` 会先找 `$CWD/.agent-watch/config.json`（项目本地、可覆盖），找不到就回落到 `~/.agent-watch/config.json`（全局）。Codex 用户因为 `notify` 命令默认在仓库目录跑，不受影响，但建议同样做一份全局兜底。
+> **Bark Key 存在 `~/.agent-watch/config.json`**，由 UI 自动写入，所有项目共用同一份。Codex 和 Claude Code 在任意工作目录下触发时都能读到，不需要为每个项目复制配置。
 
 ---
 
@@ -220,8 +211,8 @@ Po-agentWatch/
 │   └── static/               # UI 前端（HTML/CSS/JS）
 ├── tests/                    # 单元测试（仅本地保留，未随仓库发布）
 ├── examples/config.example.json
-└── .agent-watch/config.json  # 项目本地配置（git-ignore，UI 自动生成）；
-                              # 找不到时回落到 ~/.agent-watch/config.json 作为全局兜底
+└── ~/.agent-watch/config.json    # 用户级配置，UI 自动生成
+                                  # （不在仓库内，所有项目共用一份）
 ```
 
 ---
@@ -244,26 +235,19 @@ Po-agentWatch/
 
 ## 🐛 常见问题
 
-### Q：Claude Code 里 hook 看着没触发，手机收不到推送？
-A：先确认 hook 脚本本身**有没有跑** —— Claude Code 对 Stop / Notification 这两个 hook 默认不会在对话窗口冒成功提示，安静成功是预期。最常见的失败原因是**配置文件读不到**：
-- Claude Code 触发 hook 时 cwd 是**当前会话目录**（比如某个业务项目），不是 agent-watch 仓库目录。
-- 如果只在 `Po-agentWatch/.agent-watch/config.json` 里放了 Bark Key，从其它项目跑时会读到默认空 key、报 `Bark Key 不能为空` 然后静默 skip。
+### Q：Codex / Claude Code 里 hook 看着没触发，手机收不到推送？
+A：先确认 hook 脚本本身**有没有跑** —— Claude Code 对 Stop / Notification 这两个 hook 默认不会在对话窗口冒成功提示，安静成功是预期；Codex 的 notify 也不会有可见反馈。
 
-复制一份到全局位置就好：
-
-```bash
-mkdir -p ~/.agent-watch
-cp /你的/路径/Po-agentWatch/.agent-watch/config.json ~/.agent-watch/config.json
-```
-
-手动验证脚本有没有正常跑通：
+最常见的失败原因是 Bark Key 没填或填错，配置文件位置在 **`~/.agent-watch/config.json`**。手动验证脚本有没有正常跑通：
 
 ```bash
 echo '{"hook_event_name":"Stop","cwd":"/tmp","transcript_path":"/nonexistent.jsonl"}' \
   | python3 /你的/路径/notify_watch.py
 ```
 
-无任何输出 = 推送已发出；有 `Bark Key 不能为空` = 配置仍然没找到。
+无任何输出 = 推送已发出；有 `Bark Key 不能为空` = 还没在 UI 里保存配置（跑一次 `python3 agent_watch.py serve` 在网页上填 Key 保存即可）；其它错误（如 SSL / HTTP 400）见下一条。
+
+> 💡 历史版本曾把配置存在仓库内 `Po-agentWatch/.agent-watch/`，从其它项目目录调起来读不到。当前版本已统一到 `~/.agent-watch/`，跨项目共用一份，不再需要复制。
 
 ### Q：测试通知点了没反应？
 A：错误提示在页面右下角小灰字 `#status` 里，看一眼。

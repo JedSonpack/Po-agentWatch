@@ -24,16 +24,19 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 
 def default_config_path(base_dir: Path | None = None) -> Path:
-    """优先用项目本地配置；找不到则回落到 ~/.agent-watch/config.json。
+    """配置默认存在 ~/.agent-watch/config.json（用户级，跨项目共用）。
 
-    Claude Code 的 hook 触发时 cwd 是当前会话目录，不一定是 agent-watch 仓库本身，
-    所以单纯按 cwd 找会读不到 Bark key、推送被静默跳过。加一层 $HOME 兜底，
-    任何项目目录下触发的 hook 都能拿到全局配置。
+    早期版本曾把配置存在仓库内 .agent-watch/，但 Codex 的 notify 命令和
+    Claude Code 的 hook 触发时 cwd 都是当前会话目录、不是 agent-watch 仓库本身，
+    导致从其它项目调起来时读不到 Bark Key、推送被静默 skip。
+
+    现在默认走 $HOME，仓库挪位置 / 重新 clone 都不影响配置；项目本地
+    .agent-watch/config.json 仍可显式作为覆盖（传 base_dir 进来时使用）。
     """
-    root = base_dir or Path.cwd()
-    local = root / ".agent-watch" / "config.json"
-    if local.exists():
-        return local
+    if base_dir is not None:
+        local = base_dir / ".agent-watch" / "config.json"
+        if local.exists():
+            return local
     return Path.home() / ".agent-watch" / "config.json"
 
 
