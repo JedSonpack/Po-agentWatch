@@ -24,8 +24,17 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 
 def default_config_path(base_dir: Path | None = None) -> Path:
+    """优先用项目本地配置；找不到则回落到 ~/.agent-watch/config.json。
+
+    Claude Code 的 hook 触发时 cwd 是当前会话目录，不一定是 agent-watch 仓库本身，
+    所以单纯按 cwd 找会读不到 Bark key、推送被静默跳过。加一层 $HOME 兜底，
+    任何项目目录下触发的 hook 都能拿到全局配置。
+    """
     root = base_dir or Path.cwd()
-    return root / ".agent-watch" / "config.json"
+    local = root / ".agent-watch" / "config.json"
+    if local.exists():
+        return local
+    return Path.home() / ".agent-watch" / "config.json"
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
