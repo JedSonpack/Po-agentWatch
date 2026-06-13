@@ -10,8 +10,10 @@ from typing import Any
 
 SUPPORTED_VARIABLES = {"project", "summary", "last_input", "cwd", "time"}
 HTML_TAG_PATTERN = re.compile(
-    r"</?(?:a|abbr|b|blockquote|br|code|div|em|h[1-6]|i|li|ol|p|pre|span|strong|ul)"
-    r"(?:\s+[^<>]*)?\s*/?>",
+    r"</(?:a|abbr|b|blockquote|br|code|div|em|h[1-6]|i|li|ol|p|pre|span|strong|ul)\s*>"
+    r"|<(?:a|abbr|b|blockquote|br|code|div|em|h[1-6]|i|li|ol|p|pre|span|strong|ul)\s*/?>"
+    r"|<(?:a|abbr|b|blockquote|br|code|div|em|h[1-6]|i|li|ol|p|pre|span|strong|ul)"
+    r"(?:\s+[A-Za-z_:][-A-Za-z0-9_:.]*\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s<>]+))+\s*/?>",
     re.IGNORECASE,
 )
 
@@ -119,8 +121,15 @@ def _validate_template(template: str) -> None:
 
 
 def render_message(event: dict[str, Any], message_config: dict[str, Any]) -> dict[str, str]:
-    title_template = str(message_config.get("title_template", "Codex 已完成：{project}"))
-    body_template = str(message_config.get("body_template", "{summary}"))
+    raw_title_template = message_config.get("title_template", "Codex 已完成：{project}")
+    if not isinstance(raw_title_template, str):
+        raise ValueError("标题模板必须是字符串。")
+    title_template = raw_title_template
+
+    raw_body_template = message_config.get("body_template", "{summary}")
+    if not isinstance(raw_body_template, str):
+        raise ValueError("正文模板必须是字符串。")
+    body_template = raw_body_template
     try:
         max_body_chars = int(message_config.get("max_body_chars", 160))
     except (TypeError, ValueError):

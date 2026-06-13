@@ -44,6 +44,18 @@ class TemplateTest(unittest.TestCase):
         text = collapse_text("占位符 <PATH> 未替换")
         self.assertEqual(text, "占位符 <PATH> 未替换")
 
+    def test_collapse_text_preserves_code_review_text(self):
+        text = collapse_text("命令 <code review> 执行失败")
+        self.assertEqual(text, "命令 <code review> 执行失败")
+
+    def test_collapse_text_preserves_pre_commit_text(self):
+        text = collapse_text("标签 <pre commit> 需要处理")
+        self.assertEqual(text, "标签 <pre commit> 需要处理")
+
+    def test_collapse_text_preserves_div_flex_text(self):
+        text = collapse_text("布局 <div flex> 被记录")
+        self.assertEqual(text, "布局 <div flex> 被记录")
+
     def test_collapse_text_removes_html_tags_with_attributes(self):
         text = collapse_text('<span class="ok">成功</span>')
         self.assertEqual(text, "成功")
@@ -136,6 +148,32 @@ class TemplateTest(unittest.TestCase):
         message = str(ctx.exception)
         self.assertEqual(message, "消息正文长度必须是整数。")
         self.assertNotIn("invalid literal", message)
+
+    def test_render_message_rejects_non_string_title_template(self):
+        with self.assertRaises(ValueError) as ctx:
+            render_message(
+                SAMPLE_EVENT,
+                {
+                    "title_template": None,
+                    "body_template": "{summary}",
+                    "max_body_chars": 80,
+                },
+            )
+
+        self.assertEqual(str(ctx.exception), "标题模板必须是字符串。")
+
+    def test_render_message_rejects_non_string_body_template(self):
+        with self.assertRaises(ValueError) as ctx:
+            render_message(
+                SAMPLE_EVENT,
+                {
+                    "title_template": "{project}",
+                    "body_template": None,
+                    "max_body_chars": 80,
+                },
+            )
+
+        self.assertEqual(str(ctx.exception), "正文模板必须是字符串。")
 
 
 if __name__ == "__main__":
