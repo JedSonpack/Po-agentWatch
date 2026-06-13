@@ -98,6 +98,33 @@ class NotifyTest(unittest.TestCase):
         self.assertIsNone(normalize_event({"foo": "bar"}))
         self.assertIsNone(normalize_event({"hook_event_name": "PreToolUse"}))
 
+    def test_normalize_event_discards_stale_assistant_when_current_not_yet_written(self):
+        """Stop hook 可能在本轮 assistant 落盘前触发，此时 last_assistant 仍是上一轮的。
+        必须丢弃以避免「本轮 user + 上一轮 assistant」错配。
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            transcript = Path(tmp) / "session.jsonl"
+            # 1. 上一轮：user 提问 + assistant 回答（已落盘）
+            # 2. 本轮：user 又问了一句（已落盘），但本轮 assistant 还没写入
+            transcript.write_text(
+                json.dumps({"message": {"role": "user", "content": "上一轮问题"}}, ensure_ascii=False) + "\n"
+                + json.dumps({"message": {"role": "assistant", "content": [{"type": "text", "text": "上一轮回答"}]}}, ensure_ascii=False) + "\n"
+                + json.dumps({"message": {"role": "user", "content": "本轮新问题"}}, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            claude_event = {
+                "hook_event_name": "Stop",
+                "transcript_path": str(transcript),
+                "cwd": "/tmp/x",
+            }
+            normalized = normalize_event(claude_event)
+
+        self.assertIsNotNone(normalized)
+        # 上一轮的回答必须被丢弃，走 "任务已完成。" 兜底
+        self.assertEqual(normalized["last-assistant-message"], "任务已完成。")
+        # 本轮 user 仍可使用
+        self.assertEqual(normalized["input-messages"], ["本轮新问题"])
+
 
 if __name__ == "__main__":
     unittest.main()

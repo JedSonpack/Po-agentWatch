@@ -32,6 +32,13 @@ def _read_last_messages_from_transcript(transcript_path: str) -> tuple[str, str]
     """从 Claude 的 transcript JSONL 读取最后一条 assistant 消息和最后一条 user 消息。
 
     Claude Code 的 hook 事件不直接带消息内容，需要从 transcript 文件解析。
+
+    时序坑：Claude Code 的 Stop hook 可能在「本轮 assistant 文本落盘」之前触发，
+    此时 transcript 末尾只有本轮 user 消息，最后一条 assistant 仍是**上一轮**的。
+    若直接返回这段陈旧 assistant，会推送出「本轮 user + 上一轮 assistant」的错配。
+    解决：记录二者出现的行号，若 last_user 位置在 last_assistant 之后，认为本轮
+    assistant 尚未写入，主动丢弃陈旧 assistant，让上层走 "任务已完成。" 兜底。
+
     返回 (last_assistant_message, last_user_message)，读不到就返回空字符串。
     """
     try:
@@ -41,8 +48,10 @@ def _read_last_messages_from_transcript(transcript_path: str) -> tuple[str, str]
         return "", ""
 
     last_assistant = ""
+    last_assistant_idx = -1
     last_user = ""
-    for line in lines:
+    last_user_idx = -1
+    for idx, line in enumerate(lines):
         if not line.strip():
             continue
         try:
@@ -70,8 +79,16 @@ def _read_last_messages_from_transcript(transcript_path: str) -> tuple[str, str]
             continue
         if role == "assistant":
             last_assistant = text
+            last_assistant_idx = idx
         elif role == "user":
             last_user = text
+            last_user_idx = idx
+
+    # 若本轮 user 在 last_assistant 之后才出现，说明本轮 assistant 尚未落盘，
+    # 拿到的 last_assistant 是上一轮的 —— 丢弃避免错配。
+    if last_user_idx > last_assistant_idx:
+        last_assistant = ""
+
     return last_assistant, last_user
 
 
